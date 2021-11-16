@@ -5,7 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"github.com/probakowski/go-viessmann/viessmann"
+	"github.com/probakowski/go-viessmann"
 	"html/template"
 	"io/fs"
 	"io/ioutil"
