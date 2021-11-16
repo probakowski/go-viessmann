@@ -1,0 +1,133 @@
+<html lang="en">
+<head>
+    <title>Viessmann API Viewer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
+            crossorigin="anonymous"></script>
+    <style>
+        #installations {
+            width: 1024px;
+        }
+    </style>
+</head>
+<body>
+{{define "status"}}
+    {{if eq .Status "WorksProperly"}}
+        <span class="badge bg-success">Works properly</span>
+    {{else}}
+        <span class="badge bg-danger">{{.Status}}</span>
+    {{end}}
+{{end}}
+<div class="accordion" id="installations">
+    {{range $i, $a:=.Installations}}
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="installationHeading{{$i}}">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#installationCollapse{{$i}}"
+                    aria-expanded="{{if eq $i 0}}true{{else}}false{{end}}" aria-controls="installationCollapse{{$i}}">
+                <span class="px-1">Installation {{$a.Id}} ({{$a.Type}})</span>
+                {{template "status" .}}
+            </button>
+        </h2>
+        <div id="installationCollapse{{$i}}"
+             class="accordion-collapse collapse {{if eq $i 0}}show{{end}}"
+             aria-labelledby="installationHeading{{$i}}"
+             data-bs-parent="#installations">
+            <div class="accordion-body">
+                <p>
+                    {{with $a.Address}}
+                        Address: {{.Street}} {{.HouseNumber}}, {{.Zip}} {{.City}}, {{.Country}} ({{.Location.Latitude}} {{.Location.Longitude}})
+                    {{end}}
+                </p>
+                <div class="accordion" id="gateways{{$i}}">
+                    {{range $j, $a:=.Gateways}}
+                        {{$g := printf "gateway%d_%d" $i $j}}
+                        <div class="accordion-item">
+                            <h3 class="accordion-header" id="{{$g}}Heading">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#{{$g}}Collapse"
+                                        aria-expanded="false" aria-controls="{{$g}}Collapse">
+                                    <span class="px-1">Gateway {{$a.Serial}} ({{$a.Version}})</span>
+                                    {{template "status" .}}
+                                </button>
+                            </h3>
+                            <div id="{{$g}}Collapse"
+                                 class="accordion-collapse collapse"
+                                 aria-labelledby="{{$g}}Heading"
+                                 data-bs-parent="#gateways{{$i}}">
+                                <div class="accordion-body">
+                                    <p> Failed updates: {{$a.FailedFirmwareUpdates}}</p>
+                                    <p> Type: {{$a.Type}}</p>
+                                    <div class="accordion" id="devices{{$i}}_{{$j}}">
+                                        {{range $k, $a:=.Devices}}
+                                            {{$g := printf "device%d_%d_%d" $i $j $k}}
+                                            <div class="accordion-item">
+                                                <h4 class="accordion-header" id="{{$g}}Heading">
+                                                    <button class="accordion-button collapsed" type="button"
+                                                            data-bs-toggle="collapse"
+                                                            data-bs-target="#{{$g}}Collapse"
+                                                            aria-expanded="false" aria-controls="{{$g}}Collapse">
+                                                        <span class="px-1">Device {{$a.Id}} ({{$a.DeviceType}})</span>
+                                                        {{if eq .Status "Online"}}
+                                                            <span class="badge bg-success">Online</span>
+                                                        {{else}}
+                                                            <span class="badge bg-danger">{{.Status}}</span>
+                                                        {{end}}
+                                                    </button>
+                                                </h4>
+                                                <div id="{{$g}}Collapse"
+                                                     class="accordion-collapse collapse"
+                                                     aria-labelledby="{{$g}}Heading"
+                                                     data-bs-parent="#devices{{$i}}_{{$j}}">
+                                                    <p>Model ID: {{$a.ModelId}}</p>
+                                                    <div class="accordion" id="features{{$i}}_{{$j}}_{{$k}}">
+                                                        {{range $l, $a:=.Features}}
+                                                            {{$g := printf "feature%d_%d_%d_%d" $i $j $k $l}}
+                                                            <div class="accordion-item">
+                                                                <h5 class="accordion-header" id="{{$g}}Heading">
+                                                                    <button class="accordion-button collapsed"
+                                                                            type="button"
+                                                                            data-bs-toggle="collapse"
+                                                                            data-bs-target="#{{$g}}Collapse"
+                                                                            aria-expanded="false"
+                                                                            aria-controls="{{$g}}Collapse">
+                                                                        <span class="px-1">Feature {{$a.Name}}</span>
+                                                                        <span class="badge bg-secondary">{{len $a.Properties}}</span>
+                                                                        {{if .Enabled}}
+                                                                            <span class="badge bg-success">Enabled</span>
+                                                                        {{else}}
+                                                                            <span class="badge bg-danger">Disabled</span>
+                                                                        {{end}}
+                                                                    </button>
+                                                                </h5>
+                                                                <div id="{{$g}}Collapse"
+                                                                     class="accordion-collapse collapse"
+                                                                     aria-labelledby="{{$g}}Heading"
+                                                                     data-bs-parent="#features{{$i}}_{{$j}}_{{$k}}">
+                                                                    {{range $k, $v:=.Properties}}
+                                                                        {{with $v.value}}
+                                                                            <p>{{$k}}: {{.}}</p>
+                                                                        {{end}}
+                                                                    {{end}}
+                                                                </div>
+                                                            </div>
+                                                        {{end}}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {{end}}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+        {{end}}
+    </div>
+</div>
+</body>
+</html>
