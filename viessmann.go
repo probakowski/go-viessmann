@@ -240,6 +240,9 @@ func (v *Api) get(path string, t interface{}) error {
 	req, _ := http.NewRequest("GET", base+path, nil)
 	req.Header.Set("Authorization", "Bearer "+v.accessToken)
 	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	_ = res.Body.Close()
