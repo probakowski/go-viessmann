@@ -2,7 +2,6 @@ package viessmann
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -250,7 +249,7 @@ func (v *Api) get(path string, t interface{}) error {
 		return err
 	}
 	if res.StatusCode != http.StatusOK {
-		return errors.New(fmt.Sprintf("%d: %s", res.StatusCode, body))
+		return fmt.Errorf("%d: %s", res.StatusCode, body)
 	}
 
 	err = json.Unmarshal(body, t)
