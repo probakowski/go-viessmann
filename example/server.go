@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/probakowski/go-viessmann"
 	"html/template"
+	"io"
 	"io/fs"
 	"io/ioutil"
 	"log"
@@ -19,14 +20,8 @@ import (
 //go:embed static
 var web embed.FS
 
-type Config struct {
-	RefreshToken string `json:"refresh_token"`
-	ClientId     string `json:"client_id"`
-	AccessToken  string `json:"access_token"`
-}
-
 func main() {
-	config := &viessmann.Api{}
+	config := &viessmann.Client{}
 	mu := sync.Mutex{}
 	configBytes, err := ioutil.ReadFile("config")
 	if err == nil {
@@ -55,13 +50,13 @@ func main() {
 			if token == "" {
 				http.Redirect(w, req, "/login.html", http.StatusSeeOther)
 			} else {
-				buf := bytes.NewBufferString("")
+				buf := &bytes.Buffer{}
 				err = tmpl.Execute(buf, config)
 				if err != nil {
-					http.Error(w, err.Error(), 500)
+					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
-				_, _ = w.Write(buf.Bytes())
+				_, _ = io.Copy(w, buf)
 			}
 		} else {
 			fileServer.ServeHTTP(w, req)
@@ -105,17 +100,23 @@ func main() {
 				http.Error(w, string(body), res.StatusCode)
 				return
 			}
-			auth := Config{}
-			err = json.Unmarshal(body, &auth)
+			mu.Lock()
+			defer mu.Unlock()
+			err = json.Unmarshal(body, &config)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			mu.Lock()
-			config.RefreshToken = auth.RefreshToken
-			configBytes, _ := json.Marshal(config)
-			mu.Unlock()
-			_ = ioutil.WriteFile("config", configBytes, 0600)
+			configBytes, err := json.Marshal(config)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			err = ioutil.WriteFile("config", configBytes, 0600)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 			http.Redirect(w, req, "/", http.StatusFound)
 		}
 	})
